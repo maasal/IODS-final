@@ -20,3 +20,27 @@ knitr::opts_chunk$set(echo = TRUE)
 # Preliminaries
 
 We analyse financial data from the SP500 index. We have data on historical prices and historical results of the companies (<http://data.okfn.org/data/core/s-and-p-500-companies>). We try to analyse which components predict future stock price. Update prices are fetched using quantmod package. The data wrangling file can be found at <https://github.com/maasal/IODS-final/blob/master/data/datacreate.R>.
+
+```{r, echo=TRUE, eval= TRUE, message=FALSE}
+setwd("~/Documents/IODS/git/IODS-final/")
+financial <- read.csv("data/financial.csv",row.names = "X")
+
+library(GGally)
+library(corrplot)
+library(dplyr)
+# visualize the 'human_' variables
+ggpairs(financial)
+
+# compute the correlation matrix and visualize it with corrplot
+cor(financial[,-1]) %>% round(digits=2) %>% corrplot.mixed(tl.cex = 0.7,number.cex=0.7,order="hclust",addrect=2)
+
+#model
+model <- lm(formula = P ~ PE + PB + PS + diff + Div + Sector,data = financial)
+summary(model)
+
+```
+
+Let's plot it
+```{r}
+plot(model)
+```
