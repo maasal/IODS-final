@@ -19,4 +19,4 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Preliminaries
 
-We analyse financial data from the SP500 index. We have data on historical prices and historical results of the companies (<http://data.okfn.org/data/core/s-and-p-500-companies>). We try to analyse which components predict future stock price. Update prices are fetched using quantmod package. The data wrangling file can be found at <>
+We analyse financial data from the SP500 index. We have data on historical prices and historical results of the companies (<http://data.okfn.org/data/core/s-and-p-500-companies>). We try to analyse which components predict future stock price. Update prices are fetched using quantmod package. The data wrangling file can be found at <https://github.com/maasal/IODS-final/blob/master/data/datacreate.R>.
