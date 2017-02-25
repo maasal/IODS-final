@@ -28,7 +28,7 @@ dim(tickers)
 str(tickers)
 
 #define diff as percentage difference to price, the higher the more stock has plummeted during the last year
-tickers <- mutate(tickers, diff = ((X52.week.high - X52.week.low)/Price*100))
+tickers <- mutate(tickers, diff = ((X52.week.high)/Price*100))
 head(tickers)
 
 #Rename columns
@@ -100,20 +100,4 @@ str(financial)
 write.csv(x = financial, file = "financial.csv")
 dat <- read.csv("financial.csv",row.names = "X")
 
-library(GGally)
-library(corrplot)
-# visualize the 'human_' variables
-ggpairs(financial)
 
-# compute the correlation matrix and visualize it with corrplot
-cor(financial[,-1]) %>% round(digits=2) %>% corrplot.mixed(tl.cex = 0.7,number.cex=0.7,order="hclust",addrect=2)
-
-#model
-model <- lm(formula = P ~ PE + PB + PS + diff + Div + Sector,data = financial)
-summary(model)
-plot(model)
-
-
-split(financial$P,f = quantile(x = financial$P))
-pairs(cor(financial[,-c(1:3)]))
-plot(financial$P,financial$PS)

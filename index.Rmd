@@ -17,9 +17,18 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# Preliminaries
+# Abstract
+We analyse financial data to predict future stock prices. Data includes typical stock metrics that are used when deciding upon investing on a stock. We find that if price of the stock has gone down during the previous year it is likely the price will gain in the future. Likewise, some sectors with high net profit margin tend to rise in price in the future.
+
+# Preliminaries and Data
 
 We analyse financial data from the SP500 index. We have data on historical prices and historical results of the companies (<http://data.okfn.org/data/core/s-and-p-500-companies>). We try to analyse which components predict future stock price. Update prices are fetched using quantmod package. The data wrangling file can be found at <https://github.com/maasal/IODS-final/blob/master/data/datacreate.R>.
+
+We have data on comparable stock variables, namely: price per earnings (PE), price per sales (PS), price per book value (PB), dividents (Div). We also have data on sector of the firm (Sector), recent price change (diff, the higher more the stock has fallen during last 52 week period), and our dependent variable stock price change later (P). These variables are commonly used when making an investment decision. Our hypothesis is that all relevant information is embedded in the stock price and none of the variables have an effect in predicting the future stock price. 
+
+Let's first plot an overview of the data and look at the summaries of the variables. From the top row of plot 1 we can see that generally there is not much of an difference in the distributions between different sectors. As one would expect both of the price statistics (PS, PB) are generally distributed between 0 - 5, but there are many outliers in the data. This is the case for PE as well but in the range of (0 - 30). Typically higher growth prospect companies have higher PE ratios as this can be seen as the number of years it takes for the company to have earnings comparable to the current price. The sector sizes are fairly evenly distributed as well. 
+
+From the correlation matrix we can see that there is only slight correlation between the variables. The biggest is correlation between stocks that had fallen and future price. However, price per sales seems to be negatively correlated with both of these variables. 
 
 ```{r, echo=TRUE, eval= TRUE, message=FALSE}
 setwd("~/Documents/IODS/git/IODS-final/")
@@ -28,19 +37,79 @@ financial <- read.csv("data/financial.csv",row.names = "X")
 library(GGally)
 library(corrplot)
 library(dplyr)
+
+
+summary(financial)
 # visualize the 'human_' variables
-ggpairs(financial)
+ggpairs(financial, lower = list(combo = wrap("facethist", bins = 7)))
 
 # compute the correlation matrix and visualize it with corrplot
-cor(financial[,-1]) %>% round(digits=2) %>% corrplot.mixed(tl.cex = 0.7,number.cex=0.7,order="hclust",addrect=2)
+cor(financial[,-1]) %>% round(digits=2) %>% corrplot.mixed(tl.cex = 0.9,number.cex=0.9,order="hclust",addrect=2)
 
-#model
-model <- lm(formula = P ~ PE + PB + PS + diff + Div + Sector,data = financial)
-summary(model)
+
 
 ```
 
-Let's plot it
+Let's take a closer look at the PS variable and how the density changes between sectors. From the plot below we can see that financial, information technology and to some degree health care sectors have right tailed distributions and there are more stocks in these sectors that have fairly high price but their turnover is not as large compared to other companies. This phenomenom usually coencides with high net margins, and this is a fair assumption for technology, finance, and health care firms.
+
+```{r,message=FALSE}
+library(ggplot2)
+g <- ggplot(financial, aes(PS))
+g + geom_density() + facet_wrap( ~Sector) +theme_set(theme_gray(base_size = 9))
+```
+
+#Model
+
+We model the predictability of future prices (P) based on other variables. Our model is:
+
+> P ~  PB + PE + PS + diff + Div  + Sector 
+
+It turns out price per earnings and divident percent are not significant at 5% level. This is surprising as these are the two main components in a long term investing. Then again, our time period is six months. We estimate another model without these variables:
+
+> P ~  PB + PS + diff  + Sector 
+
+Below you find a summary of the estimation results from the linear regression model and residual plots. The estimation results show that all else held constant, if PS increases by one, the price of the stock is likely 2.7 percent lower in the near future. The results also show that financial and technology firms were vastly underpriced during the observation period. However, diff, the change in price from a last years high seems like a good estimator: if price of a stock has fallen, it might as well bounce back.
+
+There is no evidence of leveraging observations in the Cook's plot and the residuals are quite well in line in the QQ-plot but there is some concern whether the effects found were based on sector level factors, high PS or indirectly through high net margins of some specific stocks. 
+
+
 ```{r}
-plot(model)
+#model
+model <- lm(formula = P ~ PB + PS + diff + Sector,data = financial)
+summary(model)
+plot(model,)
 ```
+
+
+# Principal Component Analysis
+
+We now look at the principal components in a standardized data set without the sector variable.
+
+```{r, message=FALSE}
+fin_std <- scale(financial[,-1])
+
+# print out summaries of the standardized variables
+#summary(fin_std)
+
+# perform principal component analysis (with the SVD method)
+pca_fin <- prcomp(fin_std)
+
+# rounded percetanges of variance captured by each PC
+pca_percentages <- round(1*summary(pca_fin)$importance[2, ], digits = 5)*100
+
+# print out the percentages of variance
+#pca_percentages
+
+# create object pc_lab to be used as axis labels
+pca_labels <- paste0(names(pca_percentages), " (", pca_percentages, "%)")
+
+# draw a biplot of the principal component representation and the original variables
+biplot(pca_fin, choices = 1:2, cex = c(0.6, 0.6), col = c("grey60","navyblue"), xlab = pca_labels[1], ylab = pca_labels[2])
+```
+
+We can see that dividents are orthogonal to future price and PS-value. In terms of P, this is not surprising in a such short time period. Price to Earnings ratio is very weakly correlated with the rest of the variables, while price to sales is negatively correlated with future price and change from 52 week high (diff). 
+
+# Conclusions
+We reject our null hypothesis that stock prices are not affected by current ratios on it's pricing, that is, the SP500 stock market is not efficient from a theory perspective. Our analysis concentrated on the medium time interval of six months and this might change the results for a long run investor.
+
+
